@@ -1,0 +1,5 @@
+{
+  "name": "Bioinformatics Script Generator",
+  "description": "An AI-powered tool to generate shell scripts for converting bioinformatics file formats. Upload a file, choose your conversion options, and get a ready-to-run script for tasks like converting VCF to simulated FASTQ or BED files.",
+  "requestFramePermissions": []
+}
