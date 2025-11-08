@@ -1,30 +1,24 @@
 
 import React, { useState, useCallback } from 'react';
-import { ConversionOptions, InputFileType, OutputFileType } from './types';
+import { ConversionOptions, InputFileType, OutputFileType, InputSource, PublicDataset } from './types';
 import { generateConversionScript } from './services/geminiService';
 import Header from './components/Header';
-import FileUpload from './components/FileUpload';
+import InputSourcePanel from './components/InputSourcePanel';
 import ConversionOptionsPanel from './components/ConversionOptionsPanel';
 import ResultDisplay from './components/ResultDisplay';
 import Loader from './components/Loader';
 
 const App: React.FC = () => {
-    const [inputFile, setInputFile] = useState<File | null>(null);
+    const [inputSource, setInputSource] = useState<InputSource>({ type: 'local', file: null });
     const [generatedScript, setGeneratedScript] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleFileChange = (file: File | null) => {
-        if (file) {
-            setInputFile(file);
-            setGeneratedScript('');
-            setError(null);
-        }
-    };
+    const isReadyToConfigure = inputSource.type === 'local' ? !!inputSource.file : !!inputSource.dataset;
 
     const handleGenerateScript = useCallback(async (options: ConversionOptions, inputType: InputFileType, outputTypes: OutputFileType[]) => {
-        if (!inputFile) {
-            setError("Please upload a file first.");
+        if (!isReadyToConfigure) {
+            setError("Please select an input source first.");
             return;
         }
 
@@ -33,18 +27,19 @@ const App: React.FC = () => {
         setGeneratedScript('');
 
         try {
-            const script = await generateConversionScript(inputFile.name, inputType, outputTypes, options);
+            const script = await generateConversionScript(inputSource, inputType, outputTypes, options);
             setGeneratedScript(script);
         } catch (e) {
             console.error(e);
-            setError("Failed to generate script. Please check your API key and try again.");
+            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+            setError(`Failed to generate script. Please check the console for details. Error: ${errorMessage}`);
         } finally {
             setIsLoading(false);
         }
-    }, [inputFile]);
+    }, [inputSource, isReadyToConfigure]);
 
     const handleReset = () => {
-        setInputFile(null);
+        setInputSource({ type: 'local', file: null });
         setGeneratedScript('');
         setError(null);
         setIsLoading(false);
@@ -68,8 +63,8 @@ const App: React.FC = () => {
                     
                     {!generatedScript && !isLoading && (
                         <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 space-y-6">
-                            <FileUpload onFileChange={handleFileChange} currentFile={inputFile} />
-                            {inputFile && (
+                            <InputSourcePanel value={inputSource} onChange={setInputSource} />
+                            {isReadyToConfigure && (
                                 <ConversionOptionsPanel
                                     onGenerate={handleGenerateScript}
                                     isLoading={isLoading}
